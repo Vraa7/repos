@@ -1,18 +1,22 @@
 <?php
+// Aktifkan error reporting
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 include "db.php";
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['zipfile'])) {
-    $filename = $_FILES['zipfile']['name'];
-    $tmpname = $_FILES['zipfile']['tmp_name'];
-    $destination = "uploads/" . basename($filename);
+$upload_dir = "uploads/";
 
-    if (move_uploaded_file($tmpname, $destination)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['zipfile'])) {
+    $filename = basename($_FILES['zipfile']['name']);
+    $target = $upload_dir . $filename;
+
+    if (move_uploaded_file($_FILES['zipfile']['tmp_name'], $target)) {
         $stmt = $conn->prepare("INSERT INTO files (filename) VALUES (?)");
         $stmt->bind_param("s", $filename);
         $stmt->execute();
-        echo "File uploaded successfully!";
+        echo "<p>✅ File berhasil diupload!</p>";
     } else {
-        echo "Upload failed.";
+        echo "<p>❌ Upload gagal.</p>";
     }
 }
 ?>
@@ -20,21 +24,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['zipfile'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CTF File Server</title>
+    <title>Upload ZIP CTF</title>
 </head>
 <body>
-    <h2>Upload ZIP File</h2>
+    <h2>Upload File ZIP</h2>
     <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="zipfile" required>
+        <input type="file" name="zipfile" accept=".zip" required>
         <button type="submit">Upload</button>
     </form>
 
-    <h2>Available ZIP File</h2>
+    <h3>Download ZIP File:</h3>
     <ul>
         <?php
-        $res = $conn->query("SELECT * FROM files");
-        while ($row = $res->fetch_assoc()) {
-            echo "<li><a href='uploads/{$row['filename']}' download>{$row['filename']}</a></li>";
+        $result = $conn->query("SELECT * FROM files ORDER BY uploaded_at DESC");
+        while ($row = $result->fetch_assoc()) {
+            echo "<li><a href='uploads/{$row['filename']}'>{$row['filename']}</a></li>";
         }
         ?>
     </ul>
